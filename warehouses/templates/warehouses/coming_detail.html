@@ -1,0 +1,162 @@
+{% extends 'mainmenu/dashboard.html' %}
+{% load static %}
+{% load humanize %}
+{% block navbar %}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb bg-light p-3 rounded">
+            <li class="breadcrumb-item"><a href="{% url 'users:dashboard' %}">Главная</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Складское</li>
+            <li class="breadcrumb-item"><a href="{% url 'warehouses:coming-list' %}">Приходы</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ coming.warehouse.name }}</li>
+        </ol>
+    </nav>
+{% endblock navbar %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-secondary text-white rounded-top">
+                    <h5 class="mb-0">Информация по приходу</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item border-0 px-0 py-2">
+                            <strong>Склад:</strong> {{ coming.warehouse.name }}</li>
+                        <li class="list-group-item border-0 px-0 py-2">
+                            <strong>Филиал:</strong> {{ coming.warehouse.branch }}</li>
+                        <li class="list-group-item border-0 px-0 py-2"><strong>Номер
+                            договора:</strong> {{ coming.contract_number }}</li>
+                        <li class="list-group-item border-0 px-0 py-2">
+                            <strong>Счет-фактура:</strong> {{ coming.invoice_number }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-secondary text-white rounded-top d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Дополнительная информация</h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                            data-bs-target="#addProductArrivalModal">
+                        Добавить
+                    </button>
+                </div>
+                <div class="card-body">
+                    <table class="table datatable table-hover" id="WarehouseTable">
+                        <thead>
+                        <tr>
+                            <th class="text-center">#</th>
+                            <th class="text-center">Наименование</th>
+                            <th class="text-center">Количество</th>
+                            <th class="text-center">Цена за единицу</th>
+                            <th class="text-center">Действие</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for product_arrival in product_arrivals %}
+                            <tr>
+                                <td class="text-center">{{ forloop.counter }}</td>
+                                <td class="text-center">{{ product_arrival.product }}</td>
+                                <td class="text-center">{{ product_arrival.quantity|floatformat:0|intcomma }} {{ product_arrival.product.unit }}</td>
+                                <td class="text-center">{{ product_arrival.unit_price|floatformat:0|intcomma }}</td>
+                                <td class="text-center">
+                                    <a href="{% url 'warehouses:product-download-pdf' product_arrival.id %}"
+                                       class="btn btn-sm btn-warning">
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                       data-bs-target="#confirmDeleteModal{{ product_arrival.id }}">
+                                        <i class="fa fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <div class="modal fade" id="confirmDeleteModal{{ product_arrival.id }}"
+                                 tabindex="-1" role="dialog"
+                                 aria-labelledby="confirmDeleteModalLabel{{ product_arrival.id }}"
+                                 aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-top" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title text-center"
+                                                id="confirmDeleteModalLabel{{ product_arrival.id }}">Подтверждение
+                                                удаления</h5>
+                                        </div>
+                                        <div class="modal-body text-center">
+                                            Вы уверены, что хотите удалить товар
+                                            <strong>{{ product_arrival.product.name }}</strong> ?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <form method="post"
+                                                  action="{% url 'warehouses:product-delete' product_arrival.id %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" value="{{ product_arrival.id }}">
+                                                <button type="submit" class="btn btn-danger">Удалить</button>
+                                                <button type="button" class="btn btn-secondary"
+                                                        data-dismiss="modal">
+                                                    Отмена
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <tr>
+                            <td class="text-center" colspan="2"><strong>Итого:</strong></td>
+                            <td class="text-center"><strong>{{ total_quantity|floatformat:0|intcomma }}</strong></td>
+                            <td class="text-center"><strong>{{ total_amount|floatformat:0|intcomma }}</strong></td>
+                            <td class="text-center"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="addProductArrivalModal" tabindex="-1" aria-labelledby="addProductArrivalModalLabel"
+             aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addProductArrivalModalLabel">Добавить товар в приход</h5>
+                    </div>
+                    <div class="modal-body">
+                        <form method="post" action="{% url 'warehouses:product-arrival-create' coming.id %}">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label for="client">Товар</label>
+                                <select class="form-select select2 mt-2" id="product" name="product">
+                                    <option selected disabled>Выберите товар...</option>
+                                    {% for product in products %}
+                                        <option value="{{ product.pk }}">{{ product.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3 mt-4">
+                                <label for="quantity" class="form-label">Количество</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity"
+                                       required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="unit_price" class="form-label">Цена за единицу</label>
+                                <input type="number" class="form-control" id="unit_price" name="unit_price"
+                                       required>
+                            </div>
+                            <div class="modal-footer mt-4">
+                                <button type="submit" class="btn btn-primary">Сохранить</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        $(document).on('shown.bs.modal', '#addProductArrivalModal', function () {
+            $('.select2').select2({
+                dropdownParent: $('#addProductArrivalModal')
+            });
+        });
+    </script>
+{% endblock %}

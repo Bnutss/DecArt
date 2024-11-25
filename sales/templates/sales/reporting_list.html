@@ -1,0 +1,106 @@
+{% extends 'mainmenu/dashboard.html' %}
+{% load static %}
+{% load custom_filters %}
+{% load humanize %}
+{% block navbar %}
+    <li class="breadcrumb-item"><a href="{% url 'users:dashboard' %}">Главная</a></li>
+    <li class="breadcrumb-item active">Магазин</li>
+    <li class="breadcrumb-item"><a href="{% url 'sales:product_expense_report' %}">Отчетность</a></li>
+{% endblock navbar %}
+{% block content %}
+    <div class="mt-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Отчет по расходам</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="warehouse" class="form-label">Склад</label>
+                        <select name="warehouse" id="warehouse" class="form-select">
+                            <option value="">Все склады</option>
+                            {% for warehouse in warehouses %}
+                                <option value="{{ warehouse.id }}"
+                                        {% if request.GET.warehouse == warehouse.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ warehouse.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="product" class="form-label">Товар</label>
+                        <select name="product" id="product" class="form-select">
+                            <option value="">Все товары</option>
+                            {% for product in products %}
+                                <option value="{{ product.id }}"
+                                        {% if request.GET.product == product.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ product.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="start_date" class="form-label">Дата с</label>
+                        <input type="date" name="start_date" id="start_date" class="form-control"
+                               value="{{ request.GET.start_date }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="end_date" class="form-label">Дата по</label>
+                        <input type="date" name="end_date" id="end_date" class="form-control"
+                               value="{{ request.GET.end_date }}">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100 me-2">Фильтровать</button>
+                        <a href="{% url 'sales:send_expense_report_to_telegram' %}?warehouse={{ request.GET.warehouse }}&product={{ request.GET.product }}&start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}"
+                           class="btn btn-success w-100">
+                            Скачать
+                        </a>
+                    </div>
+                    <div class="d-flex justify-content-end mb-3">
+
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow mt-4">
+            <div class="card-body">
+                {% if expenses %}
+                    <table class="table table-hover table-bordered text-center align-middle mt-4">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Склад</th>
+                            <th>Филиал</th>
+                            <th>Товар</th>
+                            <th>Количество</th>
+                            <th>Цена за единицу</th>
+                            <th>Общая цена</th>
+                            <th>Дата</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for expense in expenses %}
+                            <tr>
+                                <td>{{ expense.warehouse.name }}</td>
+                                <td>{{ expense.warehouse.branch }}</td>
+                                <td>{{ expense.product.name }}</td>
+                                <td>{{ expense.quantity|floatformat:0|intcomma }}</td>
+                                <td>{{ expense.unit_price|floatformat:0|intcomma }}</td>
+                                <td>{{ expense.quantity|multiply:expense.unit_price|floatformat:0|intcomma }}</td>
+                                <td>{{ expense.date|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted mb-0">Нет данных для отображения</p>
+                    </div>
+                {% endif %}
+                <div class="mt-4">
+                    <p>Общее количество: <strong>{{ total_quantity|floatformat:0|intcomma }}</strong></p>
+                    <p>Общая стоимость: <strong>{{ total_cost|floatformat:0|intcomma }} UZS</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

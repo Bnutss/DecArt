@@ -1,0 +1,161 @@
+{% extends 'mainmenu/dashboard.html' %}
+{% load static %}
+{% block navbar %}
+    <li class="breadcrumb-item"><a href="{% url 'users:dashboard' %}">Главная</a></li>
+    <li class="breadcrumb-item active">Справочник</li>
+    <li class="breadcrumb-item"><a href="{% url 'directory:product-list' %}">Товары</a></li>
+{% endblock navbar %}
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <h5 class="card-title">Список товаров</h5>
+                <button class="btn btn btn-primary" data-bs-toggle="modal"
+                        data-bs-target="#addProductModal">
+                    <i class="bi bi-plus-circle"></i> Добавить
+                </button>
+            </div>
+            <table class="table datatable" id="productTable">
+                <thead>
+                <tr>
+                    <th class="text-center">ID</th>
+                    <th class="text-center">Наименование</th>
+                    <th class="text-center">Группа товара</th>
+                    <th class="text-center">Единица измерения</th>
+                    <th class="text-center">Дата создания</th>
+                    <th class="text-center">Действие</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for product in products %}
+                    <tr>
+                        <td class="text-center">{{ product.id }}</td>
+                        <td class="text-center">{{ product.name }}</td>
+                        <td class="text-center">{{ product.product_group }}</td>
+                        <td class="text-center">{{ product.unit }}</td>
+                        <td class="text-center">{{ product.created_at }}</td>
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal"
+                                    data-bs-target="#viewPhotoModal{{ product.id }}">
+                                <i class="fa fa-eye"></i>
+                            </button>
+                            <div class="modal fade" id="viewPhotoModal{{ product.id }}" tabindex="-1"
+                                 aria-labelledby="viewPhotoModalLabel{{ product.id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-scrollable">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title"
+                                                id="viewPhotoModalLabel{{ product.id }}">{{ product.name }}</h5>
+                                        </div>
+                                        <div class="modal-body text-center">
+                                            {% if product.photo %}
+                                                <img src="{{ product.photo.url }}" alt="Фото {{ product.name }}"
+                                                     class="img-fluid rounded">
+                                            {% else %}
+                                                <p>Фото отсутствует</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                Закрыть
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Кнопка удаления -->
+                            <a href="#" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                               data-bs-target="#confirmDeleteModal{{ product.id }}">
+                                <i class="fa fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <div class="modal fade" id="confirmDeleteModal{{ product.id }}"
+                         tabindex="-1" role="dialog"
+                         aria-labelledby="confirmDeleteModalLabel{{ product.id }}"
+                         aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-top" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title text-center"
+                                        id="confirmDeleteModalLabel{{ product.id }}">Подтверждение
+                                        удаления</h5>
+                                </div>
+                                <div class="modal-body text-center">
+                                    Вы уверены, что хотите удалить товар
+                                    <strong>{{ product.name }}</strong> ?
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post"
+                                          action="{% url 'directory:product-delete' product.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" value="{{ product.id }}">
+                                        <button type="submit" class="btn btn-danger">Удалить</button>
+                                        <button type="button" class="btn btn-secondary"
+                                                data-dismiss="modal">
+                                            Отмена
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProductModalLabel">Добавить товар</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" action="{% url 'directory:product-create' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="productName" class="form-label">Название товара</label>
+                            <input type="text" class="form-control" id="productName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="unit" class="form-label">Единица измерения</label>
+                            <select class="form-select" id="unit" name="unit" required>
+                                {% for value, display in form.fields.unit.choices %}
+                                    <option value="{{ value }}">{{ display }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="client">Группа товара</label>
+                            <select class="form-select select2 mt-2" id="product_group" name="product_group">
+                                <option selected disabled>Выберите группу...</option>
+                                {% for product_group in product_groups %}
+                                    <option value="{{ product_group.pk }}">{{ product_group.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="photo" class="form-label">Фото</label>
+                            <input type="file" class="form-control" id="photo" name="photo">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        $(document).on('shown.bs.modal', '#addProductModal', function () {
+            $('.select2').select2({
+                dropdownParent: $('#addProductModal')
+            });
+        });
+    </script>
+{% endblock %}

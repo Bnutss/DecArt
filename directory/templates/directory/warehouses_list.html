@@ -1,0 +1,116 @@
+{% extends 'mainmenu/dashboard.html' %}
+{% load static %}
+{% block navbar %}
+    <li class="breadcrumb-item"><a href="{% url 'users:dashboard' %}">Главная</a></li>
+    <li class="breadcrumb-item active">Справочник</li>
+    <li class="breadcrumb-item"><a href="{% url 'directory:warehouse-list' %}">Склады</a></li>
+{% endblock navbar %}
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <h5 class="card-title">Список складов</h5>
+                <button class="btn btn btn-primary" data-bs-toggle="modal"
+                        data-bs-target="#addWarehouseModal">
+                    <i class="bi bi-plus-circle"></i> Добавить
+                </button>
+            </div>
+            <table class="table datatable table-hover" id="WarehouseTable">
+                <thead>
+                <tr>
+                    <th class="text-center">ID</th>
+                    <th class="text-center">Наименование</th>
+                    <th class="text-center">Филиал</th>
+                    <th class="text-center">Дата создания</th>
+                    <th class="text-center">Действие</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for warehouse in warehouses %}
+                    <tr>
+                        <td class="text-center">{{ warehouse.id }}</td>
+                        <td class="text-center">{{ warehouse.name }}</td>
+                        <td class="text-center">{{ warehouse.branch }}</td>
+                        <td class="text-center">{{ warehouse.created_at }}</td>
+                        <td class="text-center">
+                            <a href="#" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                               data-bs-target="#confirmDeleteModal{{ warehouse.id }}">
+                                <i class="fa fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <div class="modal fade" id="confirmDeleteModal{{ warehouse.id }}"
+                         tabindex="-1" role="dialog"
+                         aria-labelledby="confirmDeleteModalLabel{{ warehouse.id }}"
+                         aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-top" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title text-center"
+                                        id="confirmDeleteModalLabel{{ warehouse.id }}">Подтверждение
+                                        удаления</h5>
+                                </div>
+                                <div class="modal-body text-center">
+                                    Вы уверены, что хотите удалить склад
+                                    <strong>{{ warehouse.name }}</strong> ?
+                                </div>
+                                <div class="modal-footer">
+                                    <form method="post"
+                                          action="{% url 'directory:warehouse-delete' warehouse.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" value="{{ warehouse.id }}">
+                                        <button type="submit" class="btn btn-danger">Удалить</button>
+                                        <button type="button" class="btn btn-secondary"
+                                                data-dismiss="modal">
+                                            Отмена
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal fade" id="addWarehouseModal" tabindex="-1" aria-labelledby="addWarehouseModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addWarehouseModalLabel">Добавить склад</h5>
+                </div>
+                <div class="modal-body">
+                    <form method="post" action="{% url 'directory:warehouse-create' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="branchName" class="form-label">Название склада</label>
+                            <input type="text" class="form-control" id="branchName" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="client">Филиал</label>
+                            <select class="form-select select2" id="branch" name="branch">
+                                <option selected disabled>Выберите филиал...</option>
+                                {% for branch in branches %}
+                                    <option value="{{ branch.pk }}">{{ branch.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="modal-footer mt-4">
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        $(document).on('shown.bs.modal', '#addWarehouseModal', function () {
+            $('.select2').select2({
+                dropdownParent: $('#addWarehouseModal')
+            });
+        });
+    </script>
+{% endblock %}

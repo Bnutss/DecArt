@@ -1,0 +1,90 @@
+{% extends 'mainmenu/dashboard.html' %}
+{% load static %}
+{% load humanize %}
+{% block navbar %}
+    <li class="breadcrumb-item"><a href="{% url 'users:dashboard' %}">Главная</a></li>
+    <li class="breadcrumb-item active">Складское</li>
+    <li class="breadcrumb-item"><a href="{% url 'warehouses:product_stock_list' %}">Остаток по складам</a></li>
+{% endblock navbar %}
+{% block content %}
+    <div class="mt-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Остатки по складам</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="warehouse" class="form-label"></label>
+                        <select name="warehouse" id="warehouse" class="form-select select2">
+                            <option value="">Все склады</option>
+                            {% for warehouse in warehouses %}
+                                <option value="{{ warehouse.id }}"
+                                        {% if request.GET.warehouse == warehouse.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ warehouse.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="product" class="form-label"></label>
+                        <input type="text" name="product" id="product"
+                               class="form-control"
+                               placeholder="Введите название товара или штрих-код"
+                               value="{{ request.GET.product }}">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100 me-2">Фильтровать</button>
+                        <a href="{% url 'warehouses:product_stock_export' %}?warehouse={{ request.GET.warehouse }}&product={{ request.GET.product }}"
+                           class="btn btn-success w-100">
+                            Скачать
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow mt-4">
+            <div class="card-body">
+                {% if stocks %}
+                    <table class="table table-hover table-bordered text-center align-middle mt-4">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Склад</th>
+                            <th>Филиал</th>
+                            <th>Товар</th>
+                            <th>Количество</th>
+                            <th>Штрих-код</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for stock in stocks %}
+                            <tr>
+                                <td>{{ stock.warehouse }}</td>
+                                <td>{{ stock.warehouse.branch }}</td>
+                                <td>{{ stock.product.name }}</td>
+                                <td>{{ stock.quantity|floatformat:0|intcomma }}</td>
+                                <td>{{ stock.barcode }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="text-center py-4">
+                        <p class="text-muted mb-0">Нет данных для отображения</p>
+                    </div>
+                {% endif %}
+                <div class="mt-4">
+                    <p>Общее количество: <strong>{{ total_quantity|floatformat:0|intcomma }}</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function () {
+            $('#warehouse').select2({
+                placeholder: "Выберите склад",
+                allowClear: true
+            });
+        });
+    </script>
+{% endblock %}

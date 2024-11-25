@@ -1,0 +1,74 @@
+<ul class="sidebar-nav" id="sidebar-nav">
+    <li class="nav-item">
+        <a class="nav-link " href="{% url 'users:dashboard' %}">
+            <i class="bi bi-grid"></i>
+            <span>Dashboard</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link collapsed" data-bs-target="#components-nav" data-bs-toggle="collapse" href="#">
+            <i class="bi bi-folder-fill"></i><span>Справочник</span><i class="bi bi-chevron-down ms-auto"></i>
+        </a>
+        <ul id="components-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+            <li>
+                <a href="{% url 'directory:branch-list' %}">
+                    <i class="bi bi-circle"></i><span>Филиалы</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'directory:group-list' %}">
+                    <i class="bi bi-circle"></i><span>Группы товаров</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'directory:warehouse-list' %}">
+                    <i class="bi bi-circle"></i><span>Склады</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'directory:product-list' %}">
+                    <i class="bi bi-circle"></i><span>Товары</span>
+                </a>
+            </li>
+        </ul>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link collapsed" data-bs-target="#warehouses-nav" data-bs-toggle="collapse" href="#">
+            <i class="fas fa-warehouse"></i><span>Складское</span><i class="bi bi-chevron-down ms-auto"></i>
+        </a>
+        <ul id="warehouses-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+            <li>
+                <a href="{% url 'warehouses:coming-list' %}">
+                    <i class="bi bi-circle"></i><span>Приходы</span>
+                </a>
+            </li>
+            <li>
+                <a href="components-alerts.html">
+                    <i class="bi bi-circle"></i><span>Расходы</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'warehouses:product_stock_list' %}">
+                    <i class="bi bi-circle"></i><span>Остаток по складам</span>
+                </a>
+            </li>
+        </ul>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link collapsed" data-bs-target="#shop-nav" data-bs-toggle="collapse" href="#">
+            <i class="fas fa-store-alt"></i><span>Магазин</span><i class="bi bi-chevron-down ms-auto"></i>
+        </a>
+        <ul id="shop-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
+            <li>
+                <a href="{% url 'sales:product_management_view' %}">
+                    <i class="bi bi-circle"></i><span>Продажи</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'sales:product_expense_report' %}">
+                    <i class="bi bi-circle"></i><span>Отчетность</span>
+                </a>
+            </li>
+        </ul>
+    </li>
+</ul>

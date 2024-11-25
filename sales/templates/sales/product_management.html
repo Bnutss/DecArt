@@ -1,0 +1,191 @@
+{% extends 'mainmenu/dashboard.html' %}
+{% load humanize %}
+{% load static %}
+{% block navbar %}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb bg-light p-3 rounded">
+            <li class="breadcrumb-item"><a href="{% url 'users:dashboard' %}">Главная</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Магазин</li>
+            <li class="breadcrumb-item"><a href="{% url 'sales:product_management_view' %}">Продажи</a></li>
+        </ol>
+    </nav>
+{% endblock navbar %}
+{% block content %}
+    <div class="card col-md-4">
+        <form method="get" action="">
+            <div class="input-group gap-2">
+                <input type="text" id="barcode" name="barcode" class="form-control"
+                       placeholder="Введите или сканируйте штрих-код" value="{{ barcode }}">
+                <button type="submit" class="btn btn-primary">Поиск</button>
+            </div>
+        </form>
+    </div>
+    {% if product %}
+        <div class="row g-2">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        {% if product.photo %}
+                            <img src="{{ product.photo.url }}" class="img-fluid rounded mt-3" alt="Фото товара">
+                        {% else %}
+                            <img src="{% static 'warehouses/images/logo.png' %}" class="img-fluid rounded"
+                                 alt="Фото отсутствует">
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        <p class="card-text"><small class="text-muted">Штрих-код: {{ barcode }}</small></p>
+                    </div>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <h5 class="card-header">Доступность на складах</h5>
+                            <div class="card-body">
+                                <table class="table">
+                                    <thead>
+                                    <tr>
+                                        <th class="text-center">Склад</th>
+                                        <th class="text-center">Филиал</th>
+                                        <th class="text-center">Остаток</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for stock in stocks %}
+                                        <tr>
+                                            <td class="text-center">{{ stock.warehouse.name }}</td>
+                                            <td class="text-center">{{ stock.warehouse.branch }}</td>
+                                            <td class="text-center">{{ stock.quantity|floatformat:0|intcomma }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <h5 class="card-header">Продажа</h5>
+                            <div class="card-body">
+                                <form method="post" action="">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="barcode" value="{{ barcode }}">
+                                    <div class="mb-3">
+                                        <label for="warehouse" class="form-label">Выберите склад:</label>
+                                        <select id="warehouse" name="warehouse" class="form-select" required>
+                                            {% for stock in stocks %}
+                                                <option value="{{ stock.warehouse.id }}">{{ stock.warehouse.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="quantity" class="form-label">Количество:</label>
+                                        <input type="number" id="quantity" name="quantity" class="form-control"
+                                               min="1" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="selling_price" class="form-label">Цена продажи за
+                                            единицу:</label>
+                                        <input type="text" id="selling_price" name="selling_price"
+                                               class="form-control" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100">Добавить</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row g-2">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <h5 class="card-header">Проданные товары</h5>
+                    <div class="card-body">
+                        {% if sold_items %}
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle">
+                                    <thead>
+                                    <tr>
+                                        <th>Название</th>
+                                        <th class="text-center">Количество</th>
+                                        <th class="text-end">Цена за единицу</th>
+                                        <th class="text-end">Итоговая сумма</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for item in sold_items %}
+                                        <tr>
+                                            <td>{{ item.name }}</td>
+                                            <td class="text-center">{{ item.quantity }}</td>
+                                            <td class="text-end">{{ item.price|floatformat:0|intcomma }}</td>
+                                            <td class="text-end">{{ item.total|floatformat:0|intcomma }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <h4 class="mb-0">
+                                    <strong>{{ total_sales|floatformat:0|intcomma }} UZS</strong>
+                                </h4>
+                                <form method="post" action="">
+                                    {% csrf_token %}
+                                    <button type="submit" name="action" value="reset_total"
+                                            class="btn btn-outline-secondary">
+                                        Продать и обнулить
+                                    </button>
+                                </form>
+                            </div>
+                        {% else %}
+                            <p class="text-center">Товары пока не проданы.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    {% if messages %}
+        <div id="errorModal" class="modal fade" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Сообщение</h5>
+                    </div>
+                    <div class="modal-body text-center">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}" role="alert">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+            if (document.getElementById('errorModal')) {
+                errorModal.show();
+                setTimeout(() => errorModal.hide(), 2000);
+            }
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sellingPriceInput = document.getElementById('selling_price');
+            sellingPriceInput.addEventListener('input', () => {
+                let rawValue = sellingPriceInput.value.replace(/\s/g, '');
+                if (!isNaN(rawValue)) {
+                    sellingPriceInput.value = Number(rawValue).toLocaleString('ru-RU');
+                }
+            });
+            sellingPriceInput.addEventListener('blur', () => {
+                sellingPriceInput.value = sellingPriceInput.value.replace(/\s/g, '');
+            });
+        });
+    </script>
+{% endblock %}
