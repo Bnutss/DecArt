@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
+from django.contrib.auth import logout
 
 
 class LoginView(View):
@@ -23,6 +24,12 @@ class LoginView(View):
             else:
                 form.add_error(None, "Неправильное имя пользователя или пароль.")
         return render(request, 'users/login.html', {'form': form})
+
+
+class LogoutView(View):
+    def get(self, request):
+        logout(request)
+        return redirect('users:login')
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
