@@ -47,7 +47,7 @@ class ComingCreateView(CreateView):
         return reverse('warehouses:coming-detail', kwargs={'pk': self.object.pk})
 
 
-class ComingDetailView(DetailView):
+class ComingDetailView(LoginRequiredMixin, DetailView):
     model = Coming
     template_name = 'warehouses/coming_detail.html'
     context_object_name = 'coming'
@@ -150,7 +150,7 @@ class ProductArrivalDownloadPDFView(View):
         return response
 
 
-class ProductStockListView(ListView):
+class ProductStockListView(LoginRequiredMixin, ListView):
     model = ProductStock
     template_name = "warehouses/leftovers_list.html"
     context_object_name = "stocks"

@@ -1,4 +1,6 @@
 from decimal import Decimal, InvalidOperation
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from directory.models import Product
@@ -18,6 +20,7 @@ TELEGRAM_BOT_TOKEN = "7867735433:AAEOO4CII3sBDwBfKUWy4FapOsNLgKRl0Vc"
 TELEGRAM_CHAT_ID = "-4542685446"
 
 
+@login_required
 def product_management_view(request):
     """
     Управление товаром: поиск по штрих-коду, выбор склада и продажа.
@@ -100,7 +103,7 @@ def product_management_view(request):
     return render(request, 'sales/product_management.html', context)
 
 
-class ProductExpenseReportView(ListView):
+class ProductExpenseReportView(LoginRequiredMixin, ListView):
     """
     Представление для отображения отчета по расходам.
     """
