@@ -1,0 +1,154 @@
+{% extends 'mainmenu/dashboard.html' %}
+{% load static %}
+
+{% block navbar %}
+    <li class="breadcrumb-item"><a href="{% url 'users:dashboard' %}">Главная</a></li>
+    <li class="breadcrumb-item active">Складское</li>
+    <li class="breadcrumb-item"><a href="{% url 'directory:branch-list' %}">Перемещение</a></li>
+{% endblock navbar %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <h5 class="card-title">Список перемещений</h5>
+                <button class="btn btn btn-primary" data-bs-toggle="modal"
+                        data-bs-target="#addWarehouseTransferModal">
+                    <i class="bi bi-plus-circle"></i> Добавить
+                </button>
+            </div>
+            <table class="table datatable table-hover" id="branchTable">
+                <thead>
+                <tr>
+                    <th class="text-center">Склад отправителя</th>
+                    <th class="text-center">Склад получателя</th>
+                    <th class="text-center">Товар</th>
+                    <th class="text-center">Количество</th>
+                    <th class="text-center">Дата перемещения</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for transfer in transfers %}
+                    <tr>
+                        <td class="text-center">{{ transfer.source_warehouse }}</td>
+                        <td class="text-center">{{ transfer.destination_warehouse }}</td>
+                        <td class="text-center">{{ transfer.product }}</td>
+                        <td class="text-center">{{ transfer.quantity }}</td>
+                        <td class="text-center">{{ transfer.transfer_date }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addWarehouseTransferModal" tabindex="-1"
+         aria-labelledby="addWarehouseTransferModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addWarehouseTransferModalLabel">Добавить перемещение</h5>
+                </div>
+                <div class="modal-body">
+                    <form method="post" action="{% url 'warehouses:transfer-create' %}">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="source_warehouse">Склад отправителя</label>
+                            <select class="form-select select2 mt-1" id="source_warehouse" name="source_warehouse">
+                                <option selected disabled>Выберите склад...</option>
+                                {% for warehouse in warehouses %}
+                                    <option value="{{ warehouse.pk }}"
+                                            {% if form.data.source_warehouse|stringformat:"s" == warehouse.pk|stringformat:"s" %}selected{% endif %}>
+                                        {{ warehouse.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.source_warehouse.errors %}
+                                <div class="text-danger mt-1">
+                                    {{ form.source_warehouse.errors|join:" " }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group mt-4">
+                            <label for="destination_warehouse">Склад получателя</label>
+                            <select class="form-select select2 mt-1" id="destination_warehouse"
+                                    name="destination_warehouse">
+                                <option selected disabled>Выберите склад...</option>
+                                {% for warehouse in warehouses %}
+                                    <option value="{{ warehouse.pk }}"
+                                            {% if form.data.destination_warehouse|stringformat:"s" == warehouse.pk|stringformat:"s" %}selected{% endif %}>
+                                        {{ warehouse.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.destination_warehouse.errors %}
+                                <div class="text-danger mt-1">
+                                    {{ form.destination_warehouse.errors|join:" " }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <label for="product">Товар</label>
+                            <select class="form-select select2 mt-1" id="product" name="product">
+                                <option selected disabled>Выберите товар...</option>
+                                {% for product in products %}
+                                    <option value="{{ product.pk }}"
+                                            {% if form.data.product|stringformat:"s" == product.pk|stringformat:"s" %}selected{% endif %}>
+                                        {{ product.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.product.errors %}
+                                <div class="text-danger mt-1">
+                                    {{ form.product.errors|join:" " }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="form-group mt-4">
+                            <label for="quantity" class="form-label">Количество</label>
+                            <input type="number" id="quantity" name="quantity" class="form-control" min="1" required
+                                   value="{{ form.data.quantity }}">
+                            {% if form.quantity.errors %}
+                                <div class="text-danger mt-1">
+                                    {{ form.quantity.errors|join:" " }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="modal-footer mt-4">
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            {% if messages %}
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Ошибка',
+                    html: `{% for message in messages %}<p>{{ message }}</p>{% endfor %}`,
+                    showConfirmButton: false,
+                    timer: 5000,
+                    position: 'top-end',
+                    toast: true,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                });
+            {% endif %}
+        });
+        $(document).on('shown.bs.modal', '#addWarehouseTransferModal', function () {
+            $('.select2').select2({
+                dropdownParent: $('#addWarehouseTransferModal')
+            });
+        });
+    </script>
+{% endblock %}

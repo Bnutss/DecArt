@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Warehouse, ProductArrival, ProductStock, ProductExpense, Coming
+from .models import Warehouse, ProductArrival, ProductStock, ProductExpense, Coming, WarehouseTransfer
 
 
 @admin.register(Warehouse)
@@ -40,3 +40,11 @@ class ProductExpenseAdmin(admin.ModelAdmin):
     list_filter = ('warehouse', 'product')
     search_fields = ('product__name', 'warehouse__name')
     autocomplete_fields = ('warehouse', 'product')
+
+
+@admin.register(WarehouseTransfer)
+class WarehouseTransferAdmin(admin.ModelAdmin):
+    list_display = ("source_warehouse", "destination_warehouse", "product", "quantity", "transfer_date")
+    list_filter = ("source_warehouse", "destination_warehouse", "transfer_date")
+    search_fields = ("source_warehouse",)
+    autocomplete_fields = ("source_warehouse", "destination_warehouse", "product")

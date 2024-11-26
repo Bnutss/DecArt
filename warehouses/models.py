@@ -1,6 +1,7 @@
 from django.db import models
 from directory.models import Branch, Product
 import random
+from django.db import transaction
 
 
 class Warehouse(models.Model):
@@ -82,6 +83,27 @@ class ProductArrival(models.Model):
         verbose_name_plural = "Приход товаров"
 
 
+class WarehouseTransfer(models.Model):
+    """
+    Модель для учета перемещения товаров между складами.
+    """
+    source_warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE, related_name="outgoing_transfers",
+                                         verbose_name="Склад-отправитель")
+    destination_warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE, related_name="incoming_transfers",
+                                              verbose_name="Склад-получатель")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="transfers", verbose_name="Товар"
+                                )
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Количество")
+    transfer_date = models.DateTimeField(auto_now_add=True, verbose_name="Дата перемещения")
+
+    def __str__(self):
+        return f"Перемещение {self.quantity} {self.product.name} из {self.source_warehouse.name} в {self.destination_warehouse.name}"
+
+    class Meta:
+        verbose_name = "Перемещение товара"
+        verbose_name_plural = "Перемещения товаров"
+
+
 class ProductStock(models.Model):
     """
     Модель для учета остатков товаров на складе.
@@ -98,6 +120,38 @@ class ProductStock(models.Model):
         verbose_name = "Остаток товара"
         verbose_name_plural = "Остатки товаров"
         unique_together = ('warehouse', 'product')
+
+    @transaction.atomic
+    def transfer_to(self, destination_warehouse, quantity):
+        """
+        Перемещает указанное количество товара на другой склад, включая передачу штрих-кода.
+        """
+        if quantity <= 0:
+            raise ValueError("Количество для перемещения должно быть больше 0.")
+
+        if self.quantity < quantity:
+            raise ValueError(f"Недостаточно товара на складе {self.warehouse.name}. Доступно: {self.quantity}.")
+
+        self.quantity -= quantity
+        self.save()
+
+        destination_stock, created = ProductStock.objects.get_or_create(
+            warehouse=destination_warehouse,
+            product=self.product,
+            defaults={"quantity": 0, "barcode": self.barcode}
+        )
+
+        if not created:
+            destination_stock.barcode = self.barcode
+        destination_stock.quantity += quantity
+        destination_stock.save()
+
+        WarehouseTransfer.objects.create(
+            source_warehouse=self.warehouse,
+            destination_warehouse=destination_warehouse,
+            product=self.product,
+            quantity=quantity
+        )
 
 
 class ProductExpense(models.Model):

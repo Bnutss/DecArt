@@ -2,10 +2,10 @@ import os
 from django.conf import settings
 from django.views.generic import ListView, CreateView, DeleteView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .models import Warehouse, Coming, ProductArrival, ProductStock
+from .models import Warehouse, Coming, ProductArrival, ProductStock, WarehouseTransfer
 from directory.models import Product
 from django.urls import reverse_lazy
-from .forms import ComingForm
+from .forms import ComingForm, WarehouseTransferForm
 from django.urls import reverse
 from django.views import View
 from django.http import HttpResponse
@@ -231,3 +231,43 @@ class ProductStockExportView(View):
 
         messages.success(request, "Файл успешно отправлен в Telegram")
         return redirect('warehouses:product_stock_list')
+
+
+class WarehouseTransferListView(LoginRequiredMixin, ListView):
+    model = WarehouseTransfer
+    template_name = 'warehouses/transfer_list.html'
+    context_object_name = 'transfers'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['warehouses'] = Warehouse.objects.all()
+        context['products'] = Product.objects.all()
+        return context
+
+
+class WarehouseTransferCreateView(LoginRequiredMixin, CreateView):
+    model = WarehouseTransfer
+    form_class = WarehouseTransferForm
+    template_name = 'warehouses/transfer_list.html'
+    success_url = reverse_lazy('warehouses:transfer_list')
+
+    def form_valid(self, form):
+        source_warehouse = form.cleaned_data['source_warehouse']
+        product = form.cleaned_data['product']
+        quantity = form.cleaned_data['quantity']
+
+        try:
+            product_stock = ProductStock.objects.get(warehouse=source_warehouse, product=product)
+        except ProductStock.DoesNotExist:
+            messages.error(self.request, f"На складе '{source_warehouse.name}' отсутствует товар '{product.name}'.")
+            return redirect('warehouses:transfer_list')
+
+        if product_stock.quantity < quantity:
+            messages.error(
+                self.request,
+                f"Недостаточно товара '{product.name}' на складе '{source_warehouse.name}'. "
+                f"Доступно: {product_stock.quantity}."
+            )
+            return redirect('warehouses:transfer_list')
+
+        return super().form_valid(form)

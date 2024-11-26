@@ -1,6 +1,6 @@
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
-from .models import ProductArrival, ProductStock, ProductExpense
+from .models import ProductArrival, ProductStock, ProductExpense, WarehouseTransfer
 
 
 @receiver(pre_save, sender=ProductArrival)
@@ -46,3 +46,36 @@ def update_stock_on_expense(sender, instance, created, **kwargs):
             stock.save()
         except ProductStock.DoesNotExist:
             raise ValueError(f"Товар {instance.product.name} отсутствует на складе {instance.warehouse.name}")
+
+
+@receiver(post_save, sender=WarehouseTransfer)
+def update_stock_on_transfer(sender, instance, created, **kwargs):
+    """
+    Обновляет остатки и переносит штрих-код при перемещении.
+    """
+    if created:
+
+        source_stock = ProductStock.objects.filter(
+            warehouse=instance.source_warehouse,
+            product=instance.product
+        ).first()
+
+        if not source_stock or source_stock.quantity < instance.quantity:
+            raise ValueError(
+                f"Недостаточно товара {instance.product.name} на складе {instance.source_warehouse.name}"
+            )
+
+        source_stock.quantity -= instance.quantity
+        source_stock.save()
+
+        destination_stock, created = ProductStock.objects.get_or_create(
+            warehouse=instance.destination_warehouse,
+            product=instance.product,
+            defaults={"quantity": 0, "barcode": source_stock.barcode}
+        )
+
+        if not created:
+            destination_stock.barcode = source_stock.barcode
+
+        destination_stock.quantity += instance.quantity
+        destination_stock.save()

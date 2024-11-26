@@ -5,6 +5,10 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView
 from django.contrib.auth import logout
+from .utils import calculate_metric
+from django.db.models import ExpressionWrapper, DecimalField, F
+
+from warehouses.models import ProductExpense, ProductArrival
 
 
 class LoginView(View):
@@ -37,4 +41,22 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        filter_option = self.request.GET.get('filter', 'month')
+        total_revenue_expression = ExpressionWrapper(
+            F('quantity') * F('unit_price'),
+            output_field=DecimalField(max_digits=10, decimal_places=2)
+        )
+        context['total_revenue'] = calculate_metric(
+            model=ProductExpense,
+            date_field='date',
+            filter_option=filter_option,
+            metric_field=total_revenue_expression
+        )
+        context['total_arrivals'] = calculate_metric(
+            model=ProductArrival,
+            date_field='date',
+            filter_option=filter_option,
+            metric_field='quantity'
+        )
+        context['current_filter'] = filter_option
         return context
