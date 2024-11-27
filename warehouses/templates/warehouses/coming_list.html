@@ -22,6 +22,8 @@
                     <th class="text-center">Филиал</th>
                     <th class="text-center">Номер договора</th>
                     <th class="text-center">Счет-фактура</th>
+                    <th class="text-center">НДС</th>
+                    <th class="text-center">Проводка</th>
                     <th class="text-center">Дата создания</th>
                     <th class="text-center">Действие</th>
                 </tr>
@@ -35,8 +37,19 @@
                         <td class="text-center">{{ coming.warehouse.branch }}</td>
                         <td class="text-center">{{ coming.contract_number }}</td>
                         <td class="text-center">{{ coming.invoice_number }}</td>
+                        <td class="text-center">{{ coming.vat_percentage }}</td>
+                        <td class="text-center">
+                            {% if coming.is_posted %}
+                                <i class="bi bi-check-circle text-success" title="Проводка совершена"></i>
+                            {% else %}
+                                <i class="bi bi-x-circle text-danger" title="Проводка не совершена"></i>
+                            {% endif %}
+                        </td>
                         <td class="text-center">{{ coming.created_at }}</td>
                         <td class="text-center">
+                            <a href="{% url 'warehouses:generate_pdf' coming.id %}" class="btn btn-sm btn-warning">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                            </a>
                             <a href="#" class="btn btn-sm btn-danger" data-bs-toggle="modal"
                                data-bs-target="#confirmDeleteModal{{ coming.id }}">
                                 <i class="fa fa-trash"></i>
@@ -104,13 +117,18 @@
                         </div>
                         <div class="mb-3">
                             <label for="invoice_number" class="form-label">Счет фактура</label>
-                            <input type="text" class="form-control" id="invoice_number" name="invoice_number"
-                                   required>
+                            <input type="text" class="form-control" id="invoice_number" name="invoice_number" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="vat_percentage" class="form-label">НДС (%)</label>
+                            <input type="number" class="form-control" id="vat_percentage" name="vat_percentage" min="0"
+                                   max="100" step="0.01"
+                                   value="12.00" required>
+                            <div class="form-text">Введите НДС в процентах (например, 12.00).</div>
                         </div>
                         <div class="mb-3">
                             <label for="comment" class="form-label">Комментарий</label>
-                            <textarea type="text" class="form-control" id="comment" name="comment"
-                                      required></textarea>
+                            <textarea type="text" class="form-control" id="comment" name="comment" required></textarea>
                         </div>
                         <div class="modal-footer mt-4">
                             <button type="submit" class="btn btn-primary">Сохранить</button>

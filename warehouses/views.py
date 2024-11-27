@@ -21,6 +21,12 @@ import openpyxl
 from openpyxl.styles import Font
 from django.shortcuts import redirect
 from django.contrib import messages
+from django.db.models import ExpressionWrapper, DecimalField
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.template.loader import render_to_string
+from weasyprint import HTML
 
 
 class ComingListView(LoginRequiredMixin, ListView):
@@ -55,16 +61,43 @@ class ComingDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         coming = self.get_object()
-        context['products'] = Product.objects.all()
-        context['product_arrivals'] = ProductArrival.objects.filter(coming=coming)
-        total_quantity = context['product_arrivals'].aggregate(total_quantity=Sum('quantity'))['total_quantity'] or 0
-        total_amount = context['product_arrivals'].aggregate(total_amount=Sum(F('quantity') * F('unit_price')))[
-                           'total_amount'] or 0
+        vat_multiplier = 1 + (coming.vat_percentage / 100)
 
+        product_arrivals = ProductArrival.objects.filter(coming=coming).annotate(
+            unit_price_with_vat=ExpressionWrapper(
+                F('unit_price') * vat_multiplier,
+                output_field=DecimalField(max_digits=10, decimal_places=2)
+            ),
+            total_price_with_vat=ExpressionWrapper(
+                F('quantity') * F('unit_price') * vat_multiplier,
+                output_field=DecimalField(max_digits=15, decimal_places=2)
+            )
+        )
+
+        total_quantity = product_arrivals.aggregate(total_quantity=Sum('quantity'))['total_quantity'] or 0
+        total_amount = product_arrivals.aggregate(total_amount=Sum(F('quantity') * F('unit_price')))[
+                           'total_amount'] or 0
+        total_amount_with_vat = product_arrivals.aggregate(
+            total_amount_with_vat=Sum('total_price_with_vat')
+        )['total_amount_with_vat'] or 0
+
+        context['products'] = Product.objects.all()
+        context['product_arrivals'] = product_arrivals
         context['total_quantity'] = total_quantity
         context['total_amount'] = total_amount
+        context['total_amount_with_vat'] = total_amount_with_vat
 
         return context
+
+    @method_decorator(csrf_exempt)
+    def post(self, request, *args, **kwargs):
+        coming = self.get_object()
+        if not coming.is_posted:
+            coming.is_posted = True
+            coming.save()
+            return JsonResponse(
+                {'success': True, 'message': 'Проводка успешно выполнена. Добавление новых товаров теперь недоступно.'})
+        return JsonResponse({'success': False, 'message': 'Этот приход уже проведен.'})
 
 
 class ComingDeleteView(DeleteView):
@@ -271,3 +304,37 @@ class WarehouseTransferCreateView(LoginRequiredMixin, CreateView):
             return redirect('warehouses:transfer_list')
 
         return super().form_valid(form)
+
+
+def generate_pdf(request, coming_id):
+    try:
+        coming = Coming.objects.get(id=coming_id)
+    except Coming.DoesNotExist:
+        return HttpResponse("Приход не найден", status=404)
+
+    # Расчёты
+    products = coming.products.all()
+    total_amount = sum(product.quantity * product.unit_price for product in products)  # Общее количество денег
+    vat_amount = total_amount * (coming.vat_percentage / 100)  # Сумма НДС
+
+    # Отладка
+    print(f"Coming ID: {coming.id}")
+    print(f"Total Amount: {total_amount}")
+    print(f"VAT Amount: {vat_amount}")
+    for product in products:
+        print(f"Product: {product.product.name}, Quantity: {product.quantity}, Unit Price: {product.unit_price}")
+
+    context = {
+        'coming': coming,
+        'products': products,
+        'total_amount': total_amount,
+        'vat_amount': vat_amount,
+    }
+
+    # Рендеринг HTML в PDF
+    html_string = render_to_string('warehouses/coming_pdf.html', context)
+    pdf = HTML(string=html_string).write_pdf()
+
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="coming_{coming_id}.pdf"'
+    return response

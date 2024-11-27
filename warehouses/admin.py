@@ -12,7 +12,8 @@ class WarehouseAdmin(admin.ModelAdmin):
 
 @admin.register(Coming)
 class ComingAdmin(admin.ModelAdmin):
-    list_display = ('warehouse', 'contract_number', 'invoice_number')
+    list_display = (
+    'warehouse', 'contract_number', 'invoice_number', 'vat_percentage', 'is_posted', 'created_at', 'posting_date')
     search_fields = ('warehouse', 'contract_number', 'invoice_number')
     list_filter = ('warehouse',)
     autocomplete_fields = ('warehouse',)

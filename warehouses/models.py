@@ -2,6 +2,7 @@ from django.db import models
 from directory.models import Branch, Product
 import random
 from django.db import transaction
+from django.utils.timezone import now
 
 
 class Warehouse(models.Model):
@@ -27,8 +28,19 @@ class Coming(models.Model):
     warehouse = models.ForeignKey(Warehouse, on_delete=models.CASCADE, related_name="arrivals", verbose_name="Склад")
     contract_number = models.CharField(max_length=255, verbose_name="Номер договора", blank=True, null=True)
     invoice_number = models.CharField(max_length=255, verbose_name="Счет-фактура", blank=True, null=True)
+    vat_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=12.00, verbose_name="НДС (%)",
+                                         help_text="Укажите НДС в процентах (например, 12.00)")
     comment = models.TextField(verbose_name="Комментарий", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    is_posted = models.BooleanField(default=False, verbose_name="Проводка")
+    posting_date = models.DateTimeField(null=True, blank=True, verbose_name="Дата проводки")
+
+    def save(self, *args, **kwargs):
+        if self.is_posted and not self.posting_date:
+            self.posting_date = now()
+        if not self.is_posted:
+            self.posting_date = None
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.warehouse} - {self.contract_number or 'Без договора'}"

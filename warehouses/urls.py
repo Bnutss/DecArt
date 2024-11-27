@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import ComingListView, ComingCreateView, ComingDeleteView, ComingDetailView, ProductArrivalCreateView, \
     ProductArrivalDeleteView, ProductArrivalDownloadPDFView, ProductStockListView, ProductStockExportView, \
-    WarehouseTransferListView, WarehouseTransferCreateView
+    WarehouseTransferListView, WarehouseTransferCreateView, generate_pdf
 
 app_name = 'warehouses'
 
@@ -17,5 +17,6 @@ urlpatterns = [
     path('export/', ProductStockExportView.as_view(), name='product_stock_export'),
     path('transfers/', WarehouseTransferListView.as_view(), name='transfer_list'),
     path('transfer/create/', WarehouseTransferCreateView.as_view(), name='transfer-create'),
+    path('coming/<int:coming_id>/pdf/', generate_pdf, name='generate_pdf'),
 
 ]

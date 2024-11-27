@@ -5,7 +5,7 @@ from .models import Coming, WarehouseTransfer
 class ComingForm(forms.ModelForm):
     class Meta:
         model = Coming
-        fields = ['warehouse', 'contract_number', 'invoice_number', 'comment']
+        fields = ['warehouse', 'contract_number', 'invoice_number', 'vat_percentage', 'comment']
 
 
 class WarehouseTransferForm(forms.ModelForm):

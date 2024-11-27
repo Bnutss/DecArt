@@ -1,0 +1,185 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Накладная - Приход товаров</title>
+    <style>
+        body {
+            font-family: "Arial", sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+            color: #000;
+        }
+
+        .container {
+            width: 700px;
+            margin: 20px auto;
+            padding: 15px;
+            border: 1px solid #000;
+            background-color: #fff;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .header p {
+            font-size: 12px;
+            margin: 5px 0 0;
+        }
+
+        .details table, .totals table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .details td, .details th, .totals td, .totals th {
+            border: 1px solid #000;
+            padding: 5px;
+            font-size: 12px;
+        }
+
+        .products table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .products th, .products td {
+            border: 1px solid #000;
+            padding: 5px;
+            font-size: 12px;
+        }
+
+        .products th {
+            background-color: #f2f2f2;
+        }
+
+        .products td:nth-child(2) {
+            text-align: left;
+        }
+
+        .totals td, .totals th {
+            text-align: right;
+        }
+
+        .signature {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .signature div {
+            text-align: center;
+            width: 45%;
+        }
+
+        .signature div span {
+            display: block;
+            margin-top: 40px;
+            border-top: 1px solid #000;
+        }
+
+        /* Стиль для печати */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+
+            .container {
+                width: 100%;
+                border: none;
+            }
+
+            .signature div span {
+                margin-top: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h3>Накладная на приход товаров</h3>
+        <p>Дата: {{ coming.created_at|date:"d.m.Y" }}</p>
+    </div>
+    <div class="details">
+        <table>
+            <tr>
+                <th>Склад</th>
+                <td>{{ coming.warehouse.name }}</td>
+            </tr>
+            <tr>
+                <th>Номер договора</th>
+                <td>{{ coming.contract_number|default:"Не указан" }}</td>
+            </tr>
+            <tr>
+                <th>Счет-фактура</th>
+                <td>{{ coming.invoice_number|default:"Не указан" }}</td>
+            </tr>
+        </table>
+    </div>
+    <div class="products">
+        <h4>Список товаров</h4>
+        <table>
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Товар</th>
+                <th>Количество</th>
+                <th>Цена за единицу</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for product in products %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ product.product.name }}</td>
+                    <td>{{ product.quantity|floatformat:0|intcomma }}</td>
+                    <td>{{ product.unit_price|floatformat:0|intcomma }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="totals">
+        <h4>Итоги</h4>
+        <table>
+            <tr>
+                <th>Общая сумма</th>
+                <td>{{ total_amount|floatformat:0|intcomma }} </td>
+            </tr>
+            <tr>
+                <th>НДС ({{ coming.vat_percentage }}%)</th>
+                <td>{{ vat_amount|floatformat:0|intcomma }}</td>
+            </tr>
+            <tr>
+                <th>Сумма с НДС</th>
+                <td>{{ total_amount|add:vat_amount|floatformat:0|intcomma }}</td>
+            </tr>
+        </table>
+    </div>
+    <div class="signature">
+        <div>
+            <p>Ответственный</p>
+            <span>Подпись</span>
+        </div>
+        <div>
+            <p>Получатель</p>
+            <span>Подпись</span>
+        </div>
+    </div>
+</div>
+</body>
+</html>
