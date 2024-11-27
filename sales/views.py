@@ -15,9 +15,14 @@ import openpyxl
 from django.http import JsonResponse
 from tempfile import NamedTemporaryFile
 import requests
+from openpyxl.utils import get_column_letter
+from tempfile import NamedTemporaryFile
 
 TELEGRAM_BOT_TOKEN = "7867735433:AAEOO4CII3sBDwBfKUWy4FapOsNLgKRl0Vc"
 TELEGRAM_CHAT_ID = "-4542685446"
+
+
+# TELEGRAM_CHAT_ID = "-4521184448"
 
 
 @login_required
@@ -168,8 +173,8 @@ def send_expense_report_to_telegram(request):
     product_id = request.GET.get("product")
     start_date = request.GET.get("start_date")
     end_date = request.GET.get("end_date")
-
     queryset = ProductExpense.objects.all()
+
     if warehouse_id:
         queryset = queryset.filter(warehouse_id=warehouse_id)
     if product_id:
@@ -200,6 +205,18 @@ def send_expense_report_to_telegram(request):
     )
     sheet.append([])
     sheet.append(["", "", "Итого:", total_data["total_quantity"], "", total_data["total_cost"], ""])
+
+    for col_num, column_cells in enumerate(sheet.columns, start=1):
+        max_length = 0
+        column_letter = get_column_letter(col_num)
+        for cell in column_cells:
+            try:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            except Exception:
+                pass
+        adjusted_width = max_length + 2
+        sheet.column_dimensions[column_letter].width = adjusted_width
 
     file_name = "Отчет.xlsx"
     with NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_file:

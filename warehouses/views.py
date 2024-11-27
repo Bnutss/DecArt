@@ -10,7 +10,6 @@ from django.urls import reverse
 from django.views import View
 from django.http import HttpResponse
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import mm
 from reportlab.graphics.barcode import code39
 from reportlab.lib.units import mm
 from reportlab.pdfbase.ttfonts import TTFont
@@ -27,6 +26,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.template.loader import render_to_string
 from weasyprint import HTML
+from openpyxl.utils import get_column_letter
 
 
 class ComingListView(LoginRequiredMixin, ListView):
@@ -216,11 +216,13 @@ class ProductStockExportView(View):
     TELEGRAM_BOT_TOKEN = "7867735433:AAEOO4CII3sBDwBfKUWy4FapOsNLgKRl0Vc"
     TELEGRAM_CHAT_ID = "-4542685446"
 
+    # TELEGRAM_CHAT_ID = "-4521184448"
+
     def get(self, request, *args, **kwargs):
         warehouse_id = request.GET.get('warehouse')
         product_query = request.GET.get('product')
-
         queryset = ProductStock.objects.select_related('warehouse', 'product')
+
         if warehouse_id:
             queryset = queryset.filter(warehouse_id=warehouse_id)
         if product_query:
@@ -232,11 +234,12 @@ class ProductStockExportView(View):
         workbook = openpyxl.Workbook()
         sheet = workbook.active
         sheet.title = 'Остатки'
-        sheet.merge_cells('A1:D1')
+        sheet.merge_cells('A1:E1')
         sheet['A1'] = 'Остатки по складам'
         sheet['A1'].font = Font(size=14, bold=True)
         sheet.append([])
-        sheet.append(['Склад', 'Филиал', 'Товар', 'Штрих-код', 'Количество'])
+        headers = ['Склад', 'Филиал', 'Товар', 'Штрих-код', 'Количество']
+        sheet.append(headers)
 
         for stock in queryset:
             sheet.append([
@@ -251,12 +254,28 @@ class ProductStockExportView(View):
         sheet.append(['', '', '', 'Итого', total_quantity])
         sheet.cell(sheet.max_row, 4).font = Font(bold=True)
 
+        for col_num, column_cells in enumerate(sheet.columns, start=1):
+            max_length = 0
+            column_letter = get_column_letter(col_num)
+            for cell in column_cells:
+                try:
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                except Exception:
+                    pass
+            adjusted_width = max_length + 2
+            sheet.column_dimensions[column_letter].width = adjusted_width
+
         file_path = '/tmp/Остатки.xlsx'
         workbook.save(file_path)
 
         with open(file_path, 'rb') as f:
             url = f'https://api.telegram.org/bot{self.TELEGRAM_BOT_TOKEN}/sendDocument'
-            response_telegram = requests.post(url, data={'chat_id': self.TELEGRAM_CHAT_ID}, files={'document': f})
+            response_telegram = requests.post(
+                url,
+                data={'chat_id': self.TELEGRAM_CHAT_ID},
+                files={'document': ('Остатки.xlsx', f)}
+            )
 
         if response_telegram.status_code != 200:
             messages.error(request, f"Ошибка отправки файла в Telegram: {response_telegram.text}")
@@ -312,12 +331,10 @@ def generate_pdf(request, coming_id):
     except Coming.DoesNotExist:
         return HttpResponse("Приход не найден", status=404)
 
-    # Расчёты
     products = coming.products.all()
-    total_amount = sum(product.quantity * product.unit_price for product in products)  # Общее количество денег
-    vat_amount = total_amount * (coming.vat_percentage / 100)  # Сумма НДС
+    total_amount = sum(product.quantity * product.unit_price for product in products)
+    vat_amount = total_amount * (coming.vat_percentage / 100)
 
-    # Отладка
     print(f"Coming ID: {coming.id}")
     print(f"Total Amount: {total_amount}")
     print(f"VAT Amount: {vat_amount}")
@@ -331,7 +348,6 @@ def generate_pdf(request, coming_id):
         'vat_amount': vat_amount,
     }
 
-    # Рендеринг HTML в PDF
     html_string = render_to_string('warehouses/coming_pdf.html', context)
     pdf = HTML(string=html_string).write_pdf()
 
